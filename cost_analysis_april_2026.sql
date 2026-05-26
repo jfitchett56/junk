@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Cost-analysis report: master-account product costs vs. lower regional prices
 -- Period: April 2026 (configurable below)
--- Dialect: PostgreSQL (psql)
+-- Dialect: Microsoft SQL Server (T-SQL)  -- run in SSMS / azure-data-studio / sqlcmd
 -- =============================================================================
 --
 -- WHAT THIS REPORT DOES
@@ -17,7 +17,7 @@
 --   This was written WITHOUT access to your live database, so the table and
 --   column names below are assumptions for a typical invoice system. Run the
 --   discovery queries in SECTION 0 first, then adjust the names in SECTION 1's
---   `schema_map` comment block / the FROM-JOIN clauses to match reality.
+--   FROM/JOIN clauses to match reality.
 --
 --   Assumed tables / columns:
 --     branches(branch_id, master_account_id, region_id)
@@ -31,8 +31,8 @@
 --     * Line spend uses quantity * unit_price. If your invoice_lines table has a
 --       discounted line-amount column (e.g. net_amount, line_total), swap that in
 --       for `quantity * unit_price` for more accurate spend/avg.
---     * invoice_date is assumed to be a DATE/TIMESTAMP. If your date lives on the
---       line rather than the invoice, move the date filter into invoice_lines.
+--     * invoice_date is assumed DATE/DATETIME. If your date lives on the line
+--       rather than the invoice, move the date filter into invoice_lines.
 -- =============================================================================
 
 
@@ -40,23 +40,25 @@
 -- SECTION 0 -- DISCOVERY (run these first to confirm the real schema)
 -- =============================================================================
 
--- 0a. List all user tables.
--- SELECT table_schema, table_name
--- FROM information_schema.tables
--- WHERE table_schema NOT IN ('pg_catalog','information_schema')
--- ORDER BY 1,2;
+-- 0a. List all base tables.
+-- SELECT TABLE_SCHEMA, TABLE_NAME
+-- FROM INFORMATION_SCHEMA.TABLES
+-- WHERE TABLE_TYPE = 'BASE TABLE'
+-- ORDER BY TABLE_SCHEMA, TABLE_NAME;
 
--- 0b. Columns for the tables that look invoice/branch/product/region related.
--- SELECT table_name, column_name, data_type
--- FROM information_schema.columns
--- WHERE table_name ILIKE ANY (ARRAY
---       ['%invoice%','%branch%','%product%','%account%','%region%','%item%','%line%'])
--- ORDER BY table_name, ordinal_position;
+-- 0b. Columns for tables that look invoice/branch/product/region related.
+-- SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE
+-- FROM INFORMATION_SCHEMA.COLUMNS
+-- WHERE TABLE_NAME LIKE '%invoice%' OR TABLE_NAME LIKE '%branch%'
+--    OR TABLE_NAME LIKE '%product%' OR TABLE_NAME LIKE '%account%'
+--    OR TABLE_NAME LIKE '%region%'  OR TABLE_NAME LIKE '%item%'
+--    OR TABLE_NAME LIKE '%line%'
+-- ORDER BY TABLE_NAME, ORDINAL_POSITION;
 
--- 0c. Sanity check: how many April-2026 invoice lines exist, and the date range.
--- SELECT MIN(invoice_date), MAX(invoice_date), COUNT(*)
+-- 0c. Sanity check: April-2026 invoice line volume and date range.
+-- SELECT MIN(invoice_date) AS first_dt, MAX(invoice_date) AS last_dt, COUNT(*) AS lines
 -- FROM invoices
--- WHERE invoice_date >= DATE '2026-04-01' AND invoice_date < DATE '2026-05-01';
+-- WHERE invoice_date >= '2026-04-01' AND invoice_date < '2026-05-01';
 
 
 -- =============================================================================
@@ -67,9 +69,9 @@
 
 WITH params AS (
     SELECT
-        12345::bigint     AS master_account_id,  -- <<< EDIT: your master account id
-        DATE '2026-04-01' AS period_start,       -- inclusive
-        DATE '2026-05-01' AS period_end          -- exclusive (first day of next month)
+        CAST(12345 AS bigint)      AS master_account_id,  -- <<< EDIT: your master account id
+        CAST('2026-04-01' AS date) AS period_start,       -- inclusive
+        CAST('2026-05-01' AS date) AS period_end          -- exclusive (first day of next month)
 ),
 
 -- Branches that belong to the target master account.
@@ -96,7 +98,7 @@ peer_branches AS (
 master_lines AS (
     SELECT il.product_id, il.quantity, il.unit_price
     FROM invoice_lines il
-    JOIN invoices i        ON i.invoice_id = il.invoice_id
+    JOIN invoices i         ON i.invoice_id = il.invoice_id
     JOIN master_branches mb ON mb.branch_id = i.branch_id
     CROSS JOIN params p
     WHERE i.invoice_date >= p.period_start
@@ -107,13 +109,14 @@ master_lines AS (
 master_product AS (
     SELECT
         product_id,
-        SUM(quantity)                                       AS master_qty,
-        SUM(quantity * unit_price)                          AS master_spend,
-        SUM(quantity * unit_price) / NULLIF(SUM(quantity),0) AS avg_unit_cost,  -- qty-weighted
-        AVG(unit_price)                                     AS simple_avg_price,
-        MIN(unit_price)                                     AS min_paid,
-        MAX(unit_price)                                     AS max_paid,
-        COUNT(*)                                            AS line_count
+        SUM(quantity)                                                 AS master_qty,
+        SUM(quantity * unit_price)                                    AS master_spend,
+        CAST(SUM(quantity * unit_price) AS decimal(18,4))
+            / NULLIF(SUM(quantity), 0)                                AS avg_unit_cost,  -- qty-weighted
+        AVG(unit_price)                                               AS simple_avg_price,
+        MIN(unit_price)                                               AS min_paid,
+        MAX(unit_price)                                               AS max_paid,
+        COUNT(*)                                                      AS line_count
     FROM master_lines
     GROUP BY product_id
 ),
@@ -133,15 +136,26 @@ peer_lines AS (
       AND i.invoice_date <  p.period_end
 ),
 
+-- Rank regional prices per product so we can pick the lowest.
+peer_ranked AS (
+    SELECT
+        product_id,
+        branch_id,
+        master_account_id,
+        unit_price,
+        ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY unit_price ASC) AS rn
+    FROM peer_lines
+),
+
 -- Lowest regional price per product, and who got it.
 peer_best AS (
-    SELECT DISTINCT ON (product_id)
+    SELECT
         product_id,
         unit_price        AS best_regional_price,
         branch_id         AS best_branch_id,
         master_account_id AS best_master_account_id
-    FROM peer_lines
-    ORDER BY product_id, unit_price ASC
+    FROM peer_ranked
+    WHERE rn = 1
 )
 
 SELECT
@@ -155,8 +169,9 @@ SELECT
     ROUND(pb.best_regional_price, 4)                 AS best_regional_price,
     pb.best_branch_id,
     pb.best_master_account_id,
-    (pb.best_master_account_id = p.master_account_id) AS best_is_within_your_org,
-    ROUND(mp.avg_unit_cost - pb.best_regional_price, 4)               AS unit_saving,
+    CASE WHEN pb.best_master_account_id = p.master_account_id
+         THEN 1 ELSE 0 END                           AS best_is_within_your_org,
+    ROUND(mp.avg_unit_cost - pb.best_regional_price, 4)                  AS unit_saving,
     ROUND((mp.avg_unit_cost - pb.best_regional_price) * mp.master_qty, 2) AS potential_saving_apr,
     ROUND(100.0 * (mp.avg_unit_cost - pb.best_regional_price)
           / NULLIF(mp.avg_unit_cost, 0), 1)          AS pct_cheaper
@@ -178,17 +193,16 @@ ORDER BY potential_saving_apr DESC;
 -- B) Wider comparison window for more price samples: the peer_lines benchmark
 --    above only looks at April. To compare April purchases against the best
 --    price seen over, say, the whole quarter, give peer_lines its own dates:
---      ... WHERE i.invoice_date >= DATE '2026-01-01'
---              AND i.invoice_date <  DATE '2026-05-01'
+--      ... WHERE i.invoice_date >= '2026-01-01' AND i.invoice_date < '2026-05-01'
 --    (leave master_lines on April only).
 --
 -- C) "Similar" products, not just identical product_id. If products carry a
 --    category/group key, benchmark within the category instead of by product_id:
---      - add pr.category_id to master_product / peer_lines (join products),
---      - in peer_best use DISTINCT ON (category_id) ordered by unit_price,
+--      - carry pr.category_id through master_product / peer_lines,
+--      - PARTITION BY category_id in peer_ranked,
 --      - join master_product to peer_best on category_id.
---    True text-similarity (fuzzy SKU/description matching) needs pg_trgm; ask and
---    I'll write that version once the product table layout is known.
+--    True text-similarity on SKU/description can use SQL Server fuzzy matching;
+--    ask and I'll write that version once the product table layout is known.
 --
 -- D) Exclude your own branches from the benchmark (compare only against OTHER
 --    masters): add to peer_branches' WHERE:
