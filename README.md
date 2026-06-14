@@ -1,5 +1,9 @@
 # FluxVault — moving-target data protection (proof of concept)
 
+> ⏸️ **ON HOLD (2026-06-14).** Parked pending market validation — see
+> [`docs/PROJECT_NOTES.md`](docs/PROJECT_NOTES.md). The code works and tests
+> pass; no further development is planned for now.
+
 A small, self-contained PoC of the **safe** version of an idea: store data so
 that its protection is in constant flux and is spread across multiple
 locations, *without* the self-destruct mechanism that makes the naive version
