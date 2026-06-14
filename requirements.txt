@@ -1,0 +1,5 @@
+# Optional but recommended: enables AES-256-GCM for the envelope.
+# If this package is missing or its native extension fails to import,
+# FluxVault transparently falls back to a stdlib-only authenticated cipher,
+# so the proof-of-concept and its tests run with zero dependencies.
+cryptography>=41.0
