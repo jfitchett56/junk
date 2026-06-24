@@ -83,6 +83,31 @@ Ranked by a combination of forced-move urgency, install-base size, and confirmed
 
 ---
 
+## 5a. Competitive landscape — the space is NOT empty, but it's fragmented and history is the admitted weak point
+
+A second pass corrected an over-strong claim in the first draft ("no real competition"). A nascent service market *does* exist. But it is fragmented along three lines, and **transaction-history migration is the consistently admitted weak spot even among the specialists** — which is exactly where a 150-POS, any→any, history-first capability differentiates.
+
+**QuickBooks Desktop POS exit (most crowded niche, mostly bookkeeping/consulting shops):**
+- **TSZ Bookkeeping** — "zero data loss," fixed-fee, 1–2 day turnarounds. *But their own page concedes:* "most POS systems accept customer and inventory imports but have **limited support for historical sales data**." [tsz]
+- **POS Pros** — human consultants (not software); audit + recommend + manage the move. [topposproviders]
+- **Certum Solutions, DL & Associates, Fourlane, eBetterBooks, Minding My Books** — general QuickBooks data-conversion shops now extending into POS. [certum], [dla], [fourlane]
+- **PaymentCollect** — keeps discontinued QB POS *alive* via a payments workaround rather than migrating off it — evidence that "migrate the history" is hard enough that "don't migrate at all" is a viable competing product. [paymentcollect]
+
+**Restaurant legacy (Aloha/MICROS) — reseller/ISO-led, destination-locked:**
+- **Genius POS** — Aloha/MICROS *config* conversion (menus, modifiers, tax, tenders, KDS, revenue centers) with zero-downtime cutover. Config-deep; history-light. [genius]
+- **SkyTab / Shift4 Dine** — claims to handle "historical sales data," but the mechanism is *archiving inactive items for reporting* inside SkyTab — partial, and only if you move to SkyTab. [skytab], [shift4]
+- **Toast** — first-party onboarding from Aloha/MICROS, catalog-focused. [toast-guide]
+
+**Retail cross-platform tools — catalog-focused, e-commerce heritage:**
+- **Next-Cart** (Clover→Square, ~1,000 products/hr), **LiteExtension** (API-based) — both move **catalog/customers**, not the transaction ledger. "Item lists, departments, customers, vendors, barcodes, and pricing are **more practical to migrate than full transaction history**." [nextcart], [litext]
+
+**The structural gaps a 150-POS library exploits:**
+1. **Destination lock-in.** Almost every player only moves you *onto their own platform* (SkyTab→SkyTab, Toast→Toast). A neutral any→any service serves the buyer's choice, not the vendor's.
+2. **Source fragmentation.** QB-POS bookkeepers, Aloha/MICROS resellers, and retail e-comm tools are three separate worlds. One library that spans 150 sources is a category none of them occupy.
+3. **History is everyone's weak spot** — stated outright by TSZ, the retail tools, and the restaurant resellers. That's the defensible wedge.
+
+---
+
 ## 6. So what — positioning for a 150-POS interface library
 
 - **Lead with the fear, sell the history.** The market's #1 objection ("I'll lose my sales data / I still need it for taxes") is the exact thing incumbents *can't* deliver. That's the wedge.
@@ -91,7 +116,9 @@ Ranked by a combination of forced-move urgency, install-base size, and confirmed
 - **Reseller channel, not just direct.** Resellers/ISOs already do menu/catalog setup and *decline* the history piece. White-labeling history migration to them turns competitors into a distribution channel.
 
 ### Caveat / where to validate further
-Vendor *marketing* claims migration is easy and that "1–2 years import automatically." Before committing, validate per-pair against current vendor *support* docs (limits change) and gather first-party demand signal (e.g., live counts of QB-POS-exit threads on r/smallbusiness, r/POS, restaurant operator forums). Several raw forum threads were hard to retrieve directly during this pass; a targeted forum-scrape would sharpen the volume estimates behind the rankings above.
+Vendor *marketing* claims migration is easy and that "1–2 years import automatically." Before committing, validate per-pair against current vendor *support* docs (limits change) and gather first-party demand signal.
+
+**On volume numbers — a measurement caveat.** A targeted attempt to quantify forum demand (exact Reddit upvote/comment counts, vendor-community reply/view tallies) was **not achievable with the available tools**: Reddit is hard-blocked from automated fetching, the search engine doesn't support `site:` scoping or expose engagement counts, and most vendor blogs/forums (Intuit Community, Square Community, PHP POS) returned HTTP 403 to automated fetching. The demand evidence here is therefore **breadth-of-discussion and primary-doc based, not a hard thread census.** Qualitative volume signal that *did* surface: multiple distinct Square Community threads on Clover→Square import failures (one user "spent two days" getting errors); active Intuit QuickBooks Community threads on POS discontinuation; and an entire cottage industry of QB-POS migration consultancies — itself a strong revealed-demand signal. To get hard numbers, the next step is the official **Reddit API** (or Pushshift-style archive) and the vendor communities' own search, which need authenticated/API access this toolset lacks.
 
 ---
 
@@ -119,5 +146,18 @@ Vendor *marketing* claims migration is easy and that "1–2 years import automat
 - [realbusiness] Real Business — HMRC record keeping 6 years: https://realbusiness.co.uk/hmrc-record-keeping-6-years
 - [ato] Australian Taxation Office — Overview of record-keeping rules: https://www.ato.gov.au/businesses-and-organisations/preparing-lodging-and-paying/record-keeping-for-business/overview-of-record-keeping-rules-for-business
 - [intuit-qbpos] Intuit — Discontinuation of QuickBooks Desktop POS FAQs: https://quickbooks.intuit.com/r/product-update/quickbooks-pos/
+- [tsz] TSZ Bookkeeping — QuickBooks POS Migration Service: https://tszbookkeeping.com/quickbooks-pos-migration/
+- [topposproviders] Top POS Providers — QuickBooks POS is Dead: 7 Best Cloud Alternatives: https://top-posproviders.com/articles/quickbooks-pos-is-dead-7-best-cloud-alternatives-for-2026/
+- [certum] Certum Solutions — QuickBooks Data Migration Services: https://www.certumsolutions.com/quickbooks-data-migration-services
+- [dla] DL & Associates — QuickBooks Data Migration: https://dlaexperts.com/quickbooks-migration/
+- [fourlane] Fourlane — QuickBooks Data Conversion: https://www.fourlane.com/quickbooks-data-conversion/
+- [paymentcollect] PaymentCollect — What Happened to Your QuickBooks POS Data After Discontinuation: https://www.paymentcollect.com/quickbooks-pos-replacement/qb-pos-discontinuation/
+- [genius] Genius POS — Aloha & MICROS Migration Services: https://www.genius-pos.us/services/migrations
+- [skytab] SkyTab — Move From Micros or Aloha to SkyTab: https://www.skytabpartners.us/blog/switch-to-skytab-pos/
+- [shift4] Shift4 Dine — Switch From Micros or Aloha to SkyTab: https://www.shift4dinepartners.us/blog/switch-to-skytab-pos/
+- [nextcart] Next-Cart — Clover to Square Migration: https://next-cart.com/product/clover-to-square/
+- [litext] LiteExtension — API Data Migration Service: https://litextension.com/api-data-migration-service.html
+- [squarecomm] Square Community — Importing Items from Clover: https://community.squareup.com/t5/Questions-How-To/Importing-Items-from-Clover/m-p/379603
+- [intuitcomm] Intuit QuickBooks Community — QuickBooks Point of Sale continuation: https://quickbooks.intuit.com/learn-support/en-us/payments/quickbooks-point-of-sale-continuation/00/1327943
 
 *Note: A handful of pages (some vendor blogs and the PHP POS forum) returned HTTP 403 to automated fetching; their content is cited via search-engine extracts. Treat per-vendor technical limits as point-in-time — confirm against current support docs before building each connector.*
