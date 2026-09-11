@@ -1,5 +1,5 @@
 __pycache__/
 *.pyc
 
-# report output produced by run_report.py
-cost_analysis_april_2026.csv
+# report output produced by run_report.py (CSV name follows the .sql name)
+*.csv

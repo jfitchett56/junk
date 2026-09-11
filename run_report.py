@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
-"""Run the April-2026 cost-analysis report against the MSSQL invoice DB.
+"""Run a SQL report against the MSSQL invoice DB (zero-paper).
 
 Run this LOCALLY -- on a machine/network that can reach the SQL Server on port
 1433. (It will NOT work from a Claude Code web sandbox, whose egress is limited
 to HTTP/HTTPS; the connection to 1433 times out there.)
 
-It reads the report query from cost_analysis_april_2026.sql, executes it, prints
-the result, and writes cost_analysis_april_2026.csv.
+It reads a .sql file, executes it, prints the result, and writes a .csv next to
+it with the same base name. Pass the file to run; defaults to the cost-analysis
+report when no argument is given.
 
-  1. Edit the `params` block at the top of cost_analysis_april_2026.sql
-     (set your master_account_id; adjust dates only if needed).
+  python run_report.py                                 # cost_analysis_april_2026.sql
+  python run_report.py new_branches_last_two_weeks.sql # new branches, last 14 days
+
+  1. Edit the `params` block at the top of the .sql file you are running.
   2. Set connection details via environment variables (see below).
-  3. python run_report.py
+  3. python run_report.py [report.sql]
+
+Only the FIRST result set is captured, so keep one active SELECT per file (the
+discovery queries in each report's SECTION 0 stay commented out for that reason).
 
 Connection settings (environment variables):
   MSSQL_HOST       default: zero-paper.com
@@ -42,8 +48,18 @@ except ImportError:
     sys.exit("pyodbc is not installed. Run:  pip install pyodbc")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SQL_FILE = os.path.join(HERE, "cost_analysis_april_2026.sql")
-CSV_OUT = os.path.join(HERE, "cost_analysis_april_2026.csv")
+DEFAULT_SQL = "cost_analysis_april_2026.sql"
+
+
+def resolve_sql_path(argv):
+    """Return the .sql file to run: argv[1] if given, else the default report."""
+    if len(argv) > 2:
+        sys.exit(f"Usage: {os.path.basename(argv[0])} [report.sql]")
+    name = argv[1] if len(argv) == 2 else DEFAULT_SQL
+    path = name if os.path.isabs(name) else os.path.join(HERE, name)
+    if not os.path.exists(path):
+        sys.exit(f"No such SQL file: {path}")
+    return path
 
 
 def build_conn_str():
@@ -69,7 +85,10 @@ def build_conn_str():
 
 
 def main():
-    with open(SQL_FILE, "r", encoding="utf-8") as fh:
+    sql_file = resolve_sql_path(sys.argv)
+    csv_out = os.path.splitext(sql_file)[0] + ".csv"
+
+    with open(sql_file, "r", encoding="utf-8") as fh:
         query = fh.read()
 
     try:
@@ -83,7 +102,7 @@ def main():
         cols = [d[0] for d in cur.description]
         rows = cur.fetchall()
 
-    with open(CSV_OUT, "w", newline="", encoding="utf-8") as fh:
+    with open(csv_out, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(cols)
         for r in rows:
@@ -92,7 +111,7 @@ def main():
     print("\t".join(cols))
     for r in rows:
         print("\t".join("" if v is None else str(v) for v in r))
-    print(f"\n{len(rows)} row(s). CSV written to {CSV_OUT}")
+    print(f"\n{len(rows)} row(s). CSV written to {csv_out}")
 
 
 if __name__ == "__main__":
